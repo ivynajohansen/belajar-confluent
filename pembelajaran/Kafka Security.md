@@ -1,6 +1,17 @@
-![image](https://github.com/ivynajohansen/belajar-confluent/assets/83331802/15ba4eac-fb8e-4dc2-9e91-00e66d3a2e36)# Kafka Security
+# Kafka Security
 
-Untuk meningkatkan keamanan data dalam Kafka, ada beberapa fitur yang dapat digunakan:
+Untuk meningkatkan keamanan data dalam Kafka, ada beberapa fitur/port yang dapat digunakan:
+- Plain Text: Tidak ada enkripsi maupun autentikasi
+- SSL: Enkripsi dan autentikasi
+- SASL: Autentikasi Kerberos
+- SSL + SASL: SSL untuk enkripsi dan SASL untuk autentikasi
+  
+**Enkripsi:** Mengubah text biasa menjadi cipher text yang hanya bisa di decode oleh pihak yang memiliki autoritas
+
+**Autentikasi:** Cara bagaimana suatu user membuktikan identitas mereka, contohnya menggunakan email dan password
+
+**Autorisasi:** Tahap setelah autentikasi yang menunjukkan apa yang suatu user dapat lakukan, atau permission apa yang suatu user punya, contohnya 'Root user'.
+
 
 ## Autentikasi
 
@@ -10,7 +21,7 @@ Pada gambar di atas, client external dan client internal mencoba untuk berkomuni
 
 Selanjutnya, zookeeper adalah komponen penting yang menyimpan semua metadata seperti offset, sehingga penting untuk autentikasi atau enkripsi data antara **zookeeper dan broker**.
 
-### SSL
+## SSL
 
 Saat menggunakan SSL untuk enkripsi data, performa kafka akan menurun. Autentikasi 1-way menurunkan performa secara sedikit namun autentikasi 2-way membuat performa menurun 50%. Ada 3 jenis enkripsi SSL dalam Kafka, yaitu:
 - Antar broker dan client
@@ -37,7 +48,7 @@ keytool -keystore server.keystore.jks -alias localhost -keyalg RSA -validity 365
 
 `-keyalg` dapat digantikan dengan RSA, DSA, EC.
 
-![image](https://github.com/ivynajohansen/belajar-confluent/assets/83331802/2d687f83-997b-477b-8693-8084be38f007)
+![image](https://github.com/ivynajohansen/belajar-confluent/assets/83331802/15ba4eac-fb8e-4dc2-9e91-00e66d3a2e36)
 
 #### 2. Generate certificate authority (CA) untuk sign
 
@@ -55,32 +66,44 @@ Setelah itu akan diminta PEM pass phrase, isi PEM pass phrase dengan password sa
 keytool -keystore server.keystore.jks -alias localhost -certreq -file cert-file
 ```
 
-Command ini generasi Certificate Signing Request (CSR) untuk pasangan key yang disimpan di keystore keystore.keystore.jks dengan alias localhost. CSR disimpan dalam file bernama cert-file. Setelah jalankan command diatas, file bernama `cert-file` akan muncul.
+Command diatas generasi Certificate Signing Request (CSR) untuk pasangan key yang disimpan di keystore keystore.keystore.jks dengan alias localhost. CSR disimpan dalam file bernama cert-file. Setelah jalankan command diatas, file bernama `cert-file` akan muncul.
 
 ```
 openssl x509 -req -CA ca-cert -CAkey ca-key -in cert-file -out cert-signed -days 365 -CAcreateserial -passin p
 ass:security
 ```
+Command diatas menggunakan OpenSSL untuk sign CSR dengan sertifikat CA (ca-cert) dan private key CA (ca-key). Sertifikat yang sign disimpan dalam file bernama cert-signed.
 
-Command ini menggunakan OpenSSL untuk sign CSR dengan sertifikat CA (ca-cert) dan private key CA (ca-key). Sertifikat yang sign disimpan dalam file bernama cert-signed.
+#### 4. Import CA dan sertifikat yang telah di-sign ke key store broker
+
+Impor sertifikat CA (ca-cert) ke keystore (server.keystore.jks) dengan alias CARoot.
+
+```
+keytool -keystore server.keystore.jks -alias CARoot -import -file ca-cert
+```
+
+Impor sertifikat yang telah di-sign ke keystore (server.keystore.jks) dengan alias localhost.
+
+```
+keytool -keystore server.keystore.jks -alias localhost -import -file cert-signed
+```
+
+#### 5. Import CA ke trust store client dan trust store broker
+
+Impor CA (ca-cert) ke truststore client (client.truststore.jks) dengan alias CARoot.
+
+```
+keytool -keystore client.truststore.jks -alias CARoot -import -file ca-cert
+```
+
+Dengan itu, memungkinkan client mempercayai sertifikat yang di-sign oleh CA ini.
+
+![image](https://github.com/ivynajohansen/belajar-confluent/assets/83331802/1de0a30d-1873-4903-8bd7-8a201fdb346e)
+
 
 ## Autorisasi Read & Write (Access Control List)
 
 Ketika suatu cluster digunakan oleh banyak user, penting untuk mengatur akses user dalam read atau write topic dan host.
-
-## Ports
-
-Kafka mendukung port-port berikut untuk keamanan:
-- Plain Text: Tidak ada enkripsi maupun autentikasi
-- SSL: Enkripsi dan autentikasi
-- SASL: Autentikasi Kerberos
-- SSL + SASL: SSL untuk enkripsi dan SASL untuk autentikasi
-  
-**Enkripsi:** Mengubah text biasa menjadi cipher text yang hanya bisa di decode oleh pihak yang memiliki autoritas
-
-**Autentikasi:** Cara bagaimana suatu user membuktikan identitas mereka, contohnya menggunakan email dan password
-
-**Autorisasi:** Tahap setelah autentikasi yang menunjukkan apa yang suatu user dapat lakukan, atau permission apa yang suatu user punya, contohnya 'Root user'.
 
 
 
