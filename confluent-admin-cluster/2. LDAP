@@ -1,0 +1,56 @@
+# LDAP
+
+## Install LDAP
+
+Di VM yang berbeda dari broker confluent, install LDAP dengan command berikut:
+
+```
+sudo apt update
+sudo apt install slapd ldap-utils
+```
+
+Untuk mengubah suffix Directory Information Tree (DIT), jalankan command berikut:
+
+```
+sudo dpkg-reconfigure slapd
+```
+
+Konfigurasi `/etc/ldap/ldap.conf` supaya domain mengikuti bentuk organisasi.
+
+```
+#
+# LDAP Defaults
+#
+
+# See ldap.conf(5) for details
+# This file should be world readable but not world writable.
+
+BASE    dc=alldataint,dc=net
+URI     ldap://ldap.alldataint.net ldap://ldap-provider.alldataint.net:666
+
+#SIZELIMIT      12
+#TIMELIMIT      15
+#DEREF          never
+
+# TLS certificates (needed for GnuTLS)
+TLS_CACERT      /etc/ssl/certs/ca-certificates.crt
+```
+
+Buat file bername `base.ldif` untuk konfigurasi yang isinya seperti berikut. Pastikan dn mengikuti apa yang telah ditetapkan di `/etc/ldap/ldap.conf`
+
+```
+dn: dc=alldataint,dc=net
+objectClass: top
+objectClass: dcObject
+objectClass: organization
+o: All Data International
+dc: alldataint
+
+dn: cn=admin,dc=alldataint,dc=net
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+cn: admin
+description: LDAP administrator
+userPassword: admin
+```
+
